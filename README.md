@@ -6,3 +6,5 @@ This project will aim to develop a plugin for an open source Geospatial software
 
 The goal of this project is to develop a light weight solution to conducting object detection in the Geospatial Analysis domain without requiring significant computing resources. The plugin being proposed will utilize existing methods in developing Neural Networks for image classification and segmentation to train a model in a less labor intensive fashion but also provide the option to utlize existing pre-trained models that may enhance model power.
 
+
+https://www.kaggle.com/rhammell/ships-in-satellite-imagery
