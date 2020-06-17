@@ -1,5 +1,4 @@
 # Demo
-#
 The demo portion of this repository follows the steps laid out in create_chips.py and keras_obj_det.py. First, create_chips.py walks through the steps of creating training chips for an object detection model. Next, keras_obj_det.py goes through the process of ingesting and processing the training data, training a model and testing the model on a small image containing ships for detection. 
 #
 ### create_chips.py
