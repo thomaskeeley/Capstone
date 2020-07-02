@@ -1,14 +1,14 @@
 Using Data Science and Remote Sensing to Understand Ship Traffic
 with Application to Detecting Forced Labor (Human Trafficking) 
  
-Draft Report
+### Draft Report
 by 
 Thomas Keeley & Harry Newton
  
-Abstract
+## Abstract
 Write later
 
-Problem Statement
+## Problem Statement
 By using Machine Learning (ML) on readily available imagery and signals collected by satellites, the presence of ships and their activity can be partially understood.  In this report, we first showcase our work to improve an ML algorithm that operates on imagery based to identify the location of ships.  These results beat the winning submission for a Kaggle competition to do so.  We tuned this algorithm with training data based on assuming the ground truth by the observation of a navigation signal detected at the same location and time.  This navigation signal is the Automatic Identification System (AIS) that most ships emit continuously to comply with international agreements designed to avoid collisions at sea or in port.  The imagery and signals data that we used are described in Table 1.  We describe this first model as our Ship Imagery Model because once tuned, it only requires imagery to identify ships. 
 We develop a corresponding Ship Signals Model to summarize the voyages that can be discerned by the AIS data alone, then compare the two models for “scenes” where we have corresponding imagery and signals intelligence at nearly the same time.  We use this Differences Model to find where the location of ships in time and space does not align in the data.
 Models like the ones we’ve developed can provide insights into the activity of ships conducting fishing, transport, mining, etc.  There are efforts to use data science for each of these areas.  <Need to refer to lit review to back this up or avoid the statement>.   Of these, we chose to do further work to show how our models could be applied to the fishing industry, particularly to identify practices that could indicate risk factors associated with a ship that may have a crew of forced labor (a type of human trafficking). < Need a much smoother treatment of this once.>
