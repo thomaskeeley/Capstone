@@ -30,9 +30,12 @@ AWS Covid-19 Data Lake	Includes number of cases (new, recovered, deaths) and hos
 Summary of Polaris Hotline calls for past 6.5 years	Conducted by three Ph.D.s on faculty at the Univ of Texas at San Antonio
 
 Polaris Hotline Calls Data	Have appointment next week with officer in charge of this data.  The actual data is highly protected but aggregate measures by location should be available—with caution that areas covered may need to be translated to match Covid-19 data.
+
 Case Mgmt Data from Liberty Shared	Meeting next week with CTO to understand data and infrastructure (Sales Force-based)
+
 Directed Information Graph (DIG) datasets	From work at USC available at Information Sciences Institute webpage.  Includes work for Human Trafficking and a github with scrapped web data 
 https://cina.gmu.edu/
+
 Potential other data by CINA at GMU
 	
 
@@ -55,11 +58,16 @@ Traditional wisdom is that Forced Labor is generally aligned with more tradition
 
 ### Schedule
 Task	Duration	Due
-1.	Compare Current Call Data to Past 	2 weeks	6/30
-Compare Current Call Data to Covid severity	2 weeks	7/14
-Propose Data Collection Tool Design	3 weeks	8/4
-Prepare Report	2 weeks	8/18
-Submit Article	1 week	8/22
+
+1. Compare Current Call Data to Past 2 weeks 6/30
+
+2. Compare Current Call Data to Covid severity 2 weeks 7/14
+
+3. Propose Data Collection Tool Design 3 weeks 8/4
+
+4. Prepare Report 2 weeks 8/18
+
+5. Submit Article 1 week 8/22
 
 ### Analysis of Results
 
