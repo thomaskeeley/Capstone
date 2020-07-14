@@ -19,7 +19,7 @@ from haversine import haversine, Unit
 
 #%%
 shipTypes=[
-#"drifting_longlines" #,
+#"drifting_longlines" #, for debugging picking just one
 #"fixed_gear",
 #"pole_and_line",
 #"purse_seines",
@@ -62,33 +62,40 @@ voyStat.numShips=bigDF.groupby("type")["mmsi"].nunique()
 
 #Make sure observations are ordered first by ship then time observed
 bigDF=bigDF.sort_values(['mmsi','timestamp'])
+
+#This may be needed but I think that I can avoid the compute
 # Convert UNIX timestamp to date-time and calculate intervals between signal transmissions
-bigDF['ztimestamp'] = pd.to_datetime(bigDF['timestamp'],unit='s')
+#bigDF['ztimestamp'] = pd.to_datetime(bigDF['timestamp'],unit='s')
 #don't think that I need to convert since its already in seconds
+bigDF['timestamp']=bigDF['timestamp'].astype(float)
 
 # Determine the time interval
-bigDF['ztime_diff'] = bigDF.ztimestamp - bigDF.ztimestamp.shift(1)
-#    bigDF['ztimestamp'] - bigDF['ztimestamp'].shift(1)
+bigDF['ztime_diff'] = bigDF.timestamp - bigDF.timestamp.shift(1)
 print('Num NaN:',bigDF.ztime_diff.isnull().sum())
-#bigDF['ztime_diff'] = \
-    # bigDF['ztimestamp'] - bigDF['ztimestamp'].shift(1)
-    # print('Num NaN:',bigDF.ztime_diff.isnull().sum())
-    
-# bigDF['ztime_diff'] = \
-#     bigDF['ztimestamp'] - bigDF['ztimestamp'].shift(1)
 
 # Eliminate meaningless intervals when the prev row was for a different ship
 condition=bigDF.mmsi!=bigDF.mmsi.shift(1)
 bigDF.loc[condition,'ztime_diff']=np.nan
 print('After ship changes, Num NaN:',bigDF.ztime_diff.isnull().sum())
+#for test dataset of trawlers, should be 49
 
+print(bigDF.ztime_diff.describe())
+
+for s in shipTypes:
+    condition=bigDF.type==s
+    sDF=bigDF.loc[condition,'ztime_diff']
+    voyStat.at[s,'time_diff_sd']=sDF.std()
+    voyStat.at[s,'time_diff_q']=sDF.quantile(q=0.75)
+    voyStat.at[s,'time_diff_mean']=sDF.mean()
+
+#Plan to use the q=.75 but will run by SMEs. 
 #%%    
 # Determine distance interval
 #For now, use haverstine on each pair of observations for dist travelled
 #https://pypi.org/project/haversine/ 
 #Later, will optimize using S2 library by Google
 #Can also apply logic to use dist to shore as a surrogate if this proves
-#too costly
+#too costly since that was already computed in the dataset
 
 
 bigDF['dist_diff']=np.nan
@@ -103,7 +110,9 @@ for i in range(1,len(bigDF)):
 # Eliminate meaningless intervals when the prev row was for a different ship
 condition=bigDF.mmsi!=bigDF.mmsi.shift(1)
 bigDF.loc[condition,'dist_diff']=np.nan
+
 print('After ship changes, Num NaN:',bigDF.dist_diff.isnull().sum())
+print(bigDF.dist_diff.describe())
 #%%
 
 
