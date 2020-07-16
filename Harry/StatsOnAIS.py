@@ -1,19 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Purpose: 
+ 1. Work through millions of AIS signals from ships in fishing industry
+    - Create a baseline of normal behavior based on their fishing type
+ 2. Aggregate each ships signals into voyages (times at sea, not port)
+ 3. Determine each ships behaivor over its voyages compared to baseline
+ 4. Write out results for other functions to visualize and determine 
+    which ships have operations that may indicate use of Human Trafficking 
 Created on Thu Jun 25 11:33:33 2020
+
+Data: 
+    Dataset of 26 Million AIS signals over a 5 year period for a selected
+    group of 350 ships.  
+    
+    URL: https://globalfishingwatch.org/data-download/datasets/public-training-data-v1
+
+    Provider: Global Fishing Watch based on a partnership explained in the paper
+        
+    Terms of Use: https://globalfishingwatch.org/datasets-and-code/
 
 @author: harry newton
 """
 
-
 import os
-from pathlib import Path
+#from pathlib import Path
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-import itertools
+#import matplotlib.pyplot as plt
+#from datetime import datetime, timedelta
+#import itertools
 from haversine import haversine, Unit
 
 
@@ -40,7 +56,7 @@ bigDF=pd.DataFrame(columns=columnNames) #,dtype=dataTypes)
 #%%
 #Read csv file for each shipType into bigDF
 path = "C:\\Users\\harry\\Github\\CAP\\Capstone\\AIS_data"
-#data available at: https://globalfishingwatch.org/data-download/datasets/public-training-data-v1
+
 
 for s in shipTypes:
         df = pd.read_csv(os.path.join(path,s+".csv"),dtype=dataTypes)
@@ -125,7 +141,7 @@ for i in range(1,len(bigDF)):
                 bigDF.iat[i,col4aveSpeed]=bigDF.iat[i,col4diff] \
                                             /bigDF.iat[i,col4ztime_diff]
             else:
-                bigDF.iat[i,col4aveSpeed]=NaN
+                bigDF.iat[i,col4aveSpeed]=np.nan
         else:
             voyID=voyID+1
     else:               #not at sea              
@@ -147,8 +163,9 @@ for s in shipTypes:
     condition=bigDF.type==s
     sDF=bigDF.loc[condition,'dist_diff']
     norms.at[s,'dist_diff_sd']=sDF.std()
-    norms.at[s,'dist_diff_q']=sDF.quantile(q=0.75)
+    norms.at[s,'dist_diff_q75']=sDF.quantile(q=0.75)
     norms.at[s,'dist_diff_mean']=sDF.mean()
+    
 
 #%%
 
@@ -159,22 +176,49 @@ voyageStats=pd.DataFrame()
 voyageStats['len_seconds']=bigDF.groupby('voyID').timestamp.max() \
                    -bigDF.groupby('voyID').timestamp.min()
 voyageStats['mmsi']=bigDF.groupby('voyID').mmsi.min()
-voyageStats['shipType']=bigDF.groupby('voyID').type.min()
+voyageStats['type']=bigDF.groupby('voyID').type.min()
 voyageStats['max_dist_gap']=bigDF.groupby('voyID').dist_diff.max()
 voyageStats['max_time_gap']=bigDF.groupby('voyID').ztime_diff.max()
 voyageStats['max_speed']=bigDF.groupby('voyID').speed.max()
 voyageStats['max_aveSpeed']=bigDF.groupby('voyID').aveSpeed.max()
 
-shipStats['shipType']=voyageStats.groupby('mmsi').type.min()                   
+#now populate norms based on voyages
+
+norms['len_seconds_q75']=voyageStats.groupby('type').len_seconds.quantile(q=0.75)
+
+shipStats['type']=voyageStats.groupby('mmsi').type.min()                   
 shipStats['max_len_voy']=voyageStats.groupby('mmsi').len_seconds.max()
+shipStats['ave_len_voy']=voyageStats.groupby('mmsi').len_seconds.mean()
 shipStats['max_time_gap']=voyageStats.groupby('mmsi').max_time_gap.max()
 shipStats['max_dist_gap']=voyageStats.groupby('mmsi').max_dist_gap.max()
-shipStats['max_speed']=voyageStats.groupby('mmsi').speed.max()
-shipStats['max_aveSpeed']=voyageStats.groupby('mmsi').aveSpeed.max()
+shipStats['max_speed']=voyageStats.groupby('mmsi').max_speed.max()
+shipStats['max_aveSpeed']=voyageStats.groupby('mmsi').max_aveSpeed.max()
+
+##need help here to look in norms for the matching shipType
+##wanted to do something like shipStats['risk_len_voy]
+##   =shipStat['max_len_voy']>norms[shipStat.shipType,'len_seconds_q75']
+## instead did this crazy loop
+
+norms.shipType=norms.index
+shipStats['risk_len_voy']=np.nan
+col4type=shipStats.columns.get_loc('type')
+col4risk=shipStats.columns.get_loc('risk_len_voy')
+for s in shipTypes:
+    #condition=norms.shipType==s
+    limit=norms.at[s,'len_seconds_q75']
+    for s2 in range(0,len(shipStats)):
+        if shipStats.iat[s2,col4type]==s:    
+            shipStats['risk_len_voy']=shipStats.max_len_voy>limit
+
+megaStats=shipStats.merge(norms, on='type',how='left')
 
 print(norms.describe(include='all'))
 print(shipStats.describe(include='all'))
 print(voyageStats.describe(include='all'))
+
+#%%
+
+
 
 #%%
 # Export Results
@@ -183,3 +227,4 @@ path = "C:\\Users\\harry\\Github\\CAP\\Capstone\\AIS_results"
 norms.to_csv(os.path.join(path,'norms.csv'))
 shipStats.to_csv(os.path.join(path,'shipstats.csv'))
 voyageStats.to_csv(os.path.join(path,'voyageStats.csv'))
+megaStats.to_csv(os.path.join(path,'megaStats.csv'))
