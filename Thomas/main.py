@@ -31,7 +31,8 @@ if __name__ == '__main__':
     chip_height = 20,
     augment_pos_chips = True,
     augment_neg_chips = False,
-    model_save = False)
+    save_model = True,
+    import_model = None)
     
     
     instance.execute()
