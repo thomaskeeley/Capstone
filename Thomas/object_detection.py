@@ -17,6 +17,8 @@ from datetime import date
 
 from shapely.geometry import Polygon
 
+from tensorflow import keras
+
 import fiona
 import rasterio
 import rasterio.features
@@ -33,7 +35,7 @@ class ObjectDetection:
     
     def __init__(self, image_dir, mask_dir, out_dir, step, prediction_threshold,
                  pos_chip_dir, neg_chip_dir, chip_width, chip_height, 
-                 augment_pos_chips, augment_neg_chips, model_save):
+                 augment_pos_chips, augment_neg_chips, save_model, import_model):
         """
         
         Parameters
@@ -60,8 +62,10 @@ class ObjectDetection:
             DESCRIPTION: Option to create additional training data for positive chips through augmentation
         augment_neg_chips : True or False
             DESCRIPTION: Option to create additional training data for negative chips through augmentation.
-        model_save : True or False
+        save_model : True or False
             DESCRIPTION: Option to save the model to current directory
+        import_model : Directory
+            DESCRIPTION: Filepath to saved model
         
         Notes
         -------
@@ -83,8 +87,10 @@ class ObjectDetection:
         self.height = chip_height
         self.chip_pix = chip_width * chip_height * 3
         self.mask_threshold = self.chip_pix * 0.9
+        self.import_model = import_model
         self.train_model = TrainModel(pos_chip_dir, neg_chip_dir, chip_width, chip_height, 
-                                      augment_pos_chips, augment_neg_chips, model_save)
+                                      augment_pos_chips, augment_neg_chips, save_model)
+        
         
           
     def get_image_data(self):
@@ -204,7 +210,10 @@ class ObjectDetection:
         """
         step = self.step; coordinates = []
         im_width, im_height = self.get_image_data()[1:3]
-        model = self.train_model.execute()
+        if self.import_model:
+            model = keras.models.load_model(self.import_model)
+        else:
+            model = self.train_model.execute()
         
         print('\n >>> CONDUCTING OBJECT DETECTION')
         for y in range(int((im_height-(20-step))/step)):
