@@ -27,7 +27,7 @@ from create_training_data import CreateTrainingChips
 
 class TrainModel:
     
-    def __init__(self, pos_dir, neg_dir, chip_width, chip_height, augment_pos_chips, augment_neg_chips, model_save):
+    def __init__(self, pos_chip_dir, neg_chip_dir, chip_width, chip_height, augment_pos_chips, augment_neg_chips, save_model):
         """
         
         Parameters
@@ -43,21 +43,21 @@ class TrainModel:
         augment_pos_chips : True or False
             DESCRIPTION: Option to create additional training data for positive chips through augmentation
         augment_neg_chips : True or False
-            DESCRIPTION: Option to create additional training data for negative chips through augmentation.
-        model_save : True or False
-            DESCRIPTION: Option to save the model to current directory
-
+            DESCRIPTION: Option to create additional training data for negative chips through augmentation
+        save_model : True or False
+            DESCRIPTION: Option to save model to output directory
+            
         Notes
         -------
         The purpose of this module is to first split training tensors into a train/test split.
         Next, a keras sequential model is defined, compiled, and fit to the training data.
         This module may be customized to integrate pre-trained models or add additional layers.
         The output is a trained model that can be saved to a local directory and imported later.
-
         """
-        self.training_data = CreateTrainingChips(pos_dir, neg_dir, chip_width, chip_height, augment_pos_chips, augment_neg_chips)
+        self.training_data = CreateTrainingChips(pos_chip_dir, neg_chip_dir, chip_width, chip_height, 
+                                                 augment_pos_chips, augment_neg_chips)
         self.chips, self.labels = self.training_data.execute()
-        self.model_save = model_save
+        self.save_model = save_model
 
             
     def train_test(self):
@@ -119,16 +119,16 @@ class TrainModel:
 
         model.compile(optimizer=Adam(lr=1e-3), loss="categorical_crossentropy", metrics=["accuracy"])
         
-        model.fit(X_train, y_train, batch_size=32, epochs=50, validation_split=0.2, shuffle=True, verbose=0)
+        model.fit(X_train, y_train, batch_size=32, epochs=50, validation_split=0.2, shuffle=True, verbose=1)
         print('\n     Training Complete')
         print('\n     Model Accuracy = {}'.format(model.evaluate(X_test, y_test, verbose=2)[1]))
         
-        if self.model_save == True:
+        if self.save_model == True:
             model.save('model.h5')
      
         return model
         
         
-        
-        
-        
+
+#%%
+      
