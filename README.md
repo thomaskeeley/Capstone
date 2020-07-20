@@ -5,6 +5,3 @@ This repository is dedicated to compiling efforts and resources related to the C
 This project will aim to develop a plugin for an open source Geospatial software program called QGIS. The plugin will provide the capability to perform various object detection methods on high-resolution satellite imagery utilizing Deep Learning and CNN libraries. The ability to customize a network will be integrated as well as the ability to utilize pre-trained benchmark model. 
 
 The goal of this project is to develop a light weight solution to conducting object detection in the Geospatial Analysis domain without requiring significant computing resources. The plugin being proposed will utilize existing methods in developing Neural Networks for image classification and segmentation to train a model in a less labor intensive fashion but also provide the option to utlize existing pre-trained models that may enhance model power.
-
-Additional training data is found at:
-https://www.kaggle.com/rhammell/ships-in-satellite-imagery
