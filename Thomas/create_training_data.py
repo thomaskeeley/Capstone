@@ -19,31 +19,32 @@ from keras.utils import np_utils
 class CreateTrainingChips:
     
     def __init__(self, pos_chip_dir, neg_chip_dir, chip_width, chip_height, augment_pos_chips, augment_neg_chips):
-        """
+        """Create training tensors from image chips.
+        
+        Note:
+            The purpose of this module is to ingest image chips manually created by user in GIS that are broken down
+            into two categories: 
+                1. chips that contain target object 
+                2. chips that are random background/negative labels.
+        
+        After the image is cropped to the desired dimension, it is transformed into tensors to be used as 
+        training data in a Deep Learning model.
+        The output is a collection of training tensors and associated label (0,1)
                 
         Parameters
         ----------
         pos_chip_dir : Directory
-            DESCRIPTION: Filepath to positive image chips(contain target object for detection)
+            Filepath to positive image chips(contain target object for detection)
         neg_chip_dir : Directory
-            DESCRIPTION: Filepath to negative image chips(do not contain target object)
+            Filepath to negative image chips(do not contain target object)
         chip_width : Integer
-            DESCRIPTION: Desired output width of output training chip
+            Desired output width of output training chip
         chip_height : Integer
-            DESCRIPTION: Desired output height of output training chip
+            Desired output height of output training chip
         augment_pos_chips : True or False
-            DESCRIPTION: Option to create additional training data for positive chips through augmentation
+            Option to create additional training data for positive chips through augmentation
         augment_neg_chips : True or False
-            DESCRIPTION: Option to create additional training data for negative chips through augmentation
-
-        Notes
-        -------
-        The purpose of this module is to ingest image chips manually created by user in GIS that are broken down
-        into two categories: 1)chips that contain target object and 2) chips that are random background/negative labels.
-        
-        After the image is cropped to the desired dimension,it is transformed into tensors to be used as 
-        training data in a Deep Learning model.
-        The output is a collection of training tensors and associated label (0,1)
+            Option to create additional training data for negative chips through augmentation
 
         """
         
@@ -140,10 +141,19 @@ class CreateTrainingChips:
         Returns
         -------
         chips : Array of uint8
-            DESCRIPTION: Collection of training tensors
+            Collection of training tensors
         labels : Array of uint8
-            DESCRIPTION: Categorical labels for training tensors (0,1)
-
+            Categorical labels for training tensors (0,1)
+        
+        
+        >>> chips[0]
+        array([[[ 53,  54,  51, ...,  54,  54,  53],
+                [ 52,  53,  54, ...,  52,  55,  52],
+                [ 52,  53,  52, ...,  53,  51,  52],
+                ...,
+                [ 51,  49,  50, ...,  49,  49,  50],
+                [ 48,  48,  50, ...,  49,  47,  47],
+                [ 50,  51,  48, ...,  49,  49,  49]]], dtype=uint8)
         """
         chips = []
         labels = []
@@ -177,10 +187,7 @@ class CreateTrainingChips:
 
 
 
-
-
-
-
+#%%
 
 
 
