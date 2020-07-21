@@ -1,5 +1,5 @@
 # Demo
-The demo portion of this repository an be executed under conduct.py. The modules presented provide the capability of conducting object detection in satellite imagery using user produced training data.
+The demo portion of this repository can be executed under conduct.py. The modules presented provide the capability of conducting object detection in satellite imagery using user produced training data.
 #
 ### create_training_data.py
 The images found in positive_chips.zip are produced from a manaul process in QGIS of locating ships in the desired image AOI, creating a square buffer around centroid points, and clipping the satellite image to each buffer region. This in turn creates a 200m x 200m image chip of a ship. The images in negative_chips.zip are produced following similar steps. However, instead of labeling known ships, random points are generated across the AOI to create negative training samples. The CreateTrainingChips module ingests these images, crops them to the desired dimension, optionally augments the images, and finally transforms to a collection of tensors and labels to be used in training a Deep Learning Model.
