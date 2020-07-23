@@ -12,7 +12,7 @@ Created on Thu Jun 25 11:33:33 2020
 
 Data: 
     Dataset of 26 Million AIS signals over a 5 year period for a selected
-    group of 350 ships.  
+    group of 350 ships.   
     
     URL: https://globalfishingwatch.org/data-download/datasets/public-training-data-v1
 
@@ -46,8 +46,8 @@ shipTypes=[
 columnNames=['mmsi', 'timestamp', 'distance_from_shore', 'distance_from_port',
        'speed', 'course', 'lat', 'lon', 'is_fishing', 'source']
 dataTypes={'mmsi':float,'timestamp':float,'distance_from_shore':float, \
-            'distance_from_port':float, 'speed':float, 'course':float, \
-            'lat':float,'lon':float, 'is_fishing':object, 'source':object}
+             'distance_from_port':float, 'speed':float, 'course':float, \
+             'lat':float,'lon':float, 'is_fishing':object, 'source':object}
 dataUnits={'mmsi':'VesselID','timestamp':'seconds','distance_from_shore':'meters', \
             'distance_from_port':'meters', 'speed':'knots', 'course':'degrees', \
             'lat':'decimal degrees','lon':'decimal degrees', 'is_fishing':'label', 'source':'text'}
@@ -68,7 +68,7 @@ for s in shipTypes:
         
 #%% 
 # to determine long voyage risk factor, need stats on voyages
-normsCols=['numObs','numShips','meanVoyage','sdVoyage','numVoyage']
+normsCols=['numObs','numShips','numVoyages','aveNumVoyages','numVoyages_q25']
 norms=pd.DataFrame(columns=normsCols,dtype=object)
 
 #Determine number of observations (signals) and unique ships for each ship type 
@@ -78,28 +78,29 @@ norms.numShips=bigDF.groupby("type")["mmsi"].nunique()
 
 #%%
 # Prepare for risk factors on gaps in ship signals (both time & distance)
-
+# Note that at this point, obs are not separated into voyages
 #Make sure observations are ordered first by ship then time observed
-bigDF=bigDF.sort_values(['mmsi','timestamp'])
+#bigDF=bigDF.sort_values(['mmsi','timestamp'])
 
 # Determine the time interval
-bigDF['ztime_diff'] = bigDF.timestamp - bigDF.timestamp.shift(1)
-print('Num NaN:',bigDF.ztime_diff.isnull().sum())
+# bigDF['time_diff'] = bigDF.timestamp - bigDF.timestamp.shift(1)
+# print('Num NaN:',bigDF.time_diff.isnull().sum())
 
 # Eliminate meaningless intervals when the prev row was for a different ship
-condition=bigDF.mmsi!=bigDF.mmsi.shift(1)
-bigDF.loc[condition,'ztime_diff']=np.nan
-print('After ship changes, Num NaN:',bigDF.ztime_diff.isnull().sum())
+# condition=bigDF.mmsi!=bigDF.mmsi.shift(1)
+# bigDF.loc[condition,'time_diff']=np.nan
+# bigDF.loc[condition,'dist_diff']=np.nan
+print('After data load...')
+
 #for test dataset of trawlers, should be 49
+print(bigDF.type.describe())
 
-print(bigDF.ztime_diff.describe())
-
-for s in shipTypes:
-    condition=bigDF.type==s
-    sDF=bigDF.loc[condition,'ztime_diff']
-    norms.at[s,'time_diff_sd']=sDF.std()
-    norms.at[s,'time_diff_q75']=sDF.quantile(q=0.75)
-    norms.at[s,'time_diff_mean']=sDF.mean()
+# for s in shipTypes:
+#     condition=bigDF.type==s
+#     sDF=bigDF.loc[condition,'time_diff']
+#     norms.at[s,'time_diff_sd']=sDF.std()
+#     norms.at[s,'time_diff_q75']=sDF.quantile(q=0.75)
+#     norms.at[s,'time_diff_mean']=sDF.mean()
 
 #Plan to use the q=.75 but will run by SMEs. 
 #%%    
@@ -111,120 +112,190 @@ for s in shipTypes:
 #too costly since that was already computed in the dataset
 
 #Will assign voyage unique IDs while computing distances
-#with logic that within 500 meters of shore  is not a voyage   
+#with logic that within 500 meters of shore  is not a voyage 
 
+#setup for summary stats between each observation    
+bigDF['time_diff']=np.nan
 bigDF['dist_diff']=np.nan
-bigDF['voyID']=np.nan
-bigDF['aveSpeed']=np.nan
-col4voyID=bigDF.columns.get_loc('voyID')
-col4mmsi=bigDF.columns.get_loc('mmsi')
-col4dist=bigDF.columns.get_loc('distance_from_shore')
-col4diff=bigDF.columns.get_loc('dist_diff')
+#bigDF['aveSpeed']=np.nan  #for later functionality
+col4time_diff=bigDF.columns.get_loc('time_diff')
+col4dist_diff=bigDF.columns.get_loc('dist_diff')
+#col4aveSpeed=bigDF.columns.get_loc('aveSpeed')
+
+#reference columns to compute time and distance deltas
 col4lat=bigDF.columns.get_loc('lat')
 col4lon=bigDF.columns.get_loc('lon')
-col4aveSpeed=bigDF.columns.get_loc('aveSpeed')
-col4ztime_diff=bigDF.columns.get_loc('ztime_diff')
+col4timestamp=bigDF.columns.get_loc('timestamp')
+col4dist2shore=bigDF.columns.get_loc('distance_from_shore')
 
+#setup to label each voyage
+bigDF['voyID']=1
+col4voyID=bigDF.columns.get_loc('voyID')
+col4mmsi=bigDF.columns.get_loc('mmsi')
+
+#Assign first row since it can't be computed with delta formulas
 voyID=1  #each voyage will get a unique ID
-bigDF.iat[0,col4voyID]=voyID
+flag_used_voyID=False
+
+i=0
+if bigDF.iat[i,col4dist2shore]>500: #at sea
+        flag_atSea=True
+        bigDF.iat[i,col4voyID]=voyID
+        flag_used_voyID=True
+
+#bigDF.iat[0,col4time_diff] already NaN
+#bigDF.iat[0,col4dist_diff] already NaN
+
+#Starting index at 1 because the 0th row has no i-1 row for deltas.
 flag_atSea=False
 for i in range(1,len(bigDF)):
     #if at sea & same ship, compute distance and assign voyageID
-    if bigDF.iat[i,col4dist]>500: #at sea
+    if bigDF.iat[i,col4dist2shore]>500: #at sea
         flag_atSea=True
         if bigDF.iat[i,col4mmsi] == bigDF.iat[i-1,col4mmsi]: #same ship
             bigDF.iat[i,col4voyID]=voyID
-            bigDF.iat[i,col4diff] = \
-                haversine((bigDF.iat[i,col4lat],bigDF.iat[i,col4lon]), \
-                          (bigDF.iat[i-1,col4lat],bigDF.iat[i-1,col4lon]))
-            if (bigDF.iat[i,col4ztime_diff]>=60): #>= 1 min
-                bigDF.iat[i,col4aveSpeed]=bigDF.iat[i,col4diff] \
-                                            /bigDF.iat[i,col4ztime_diff]
-            else:
-                bigDF.iat[i,col4aveSpeed]=np.nan
+            flag_used_voyID=True
+            timeDelta=bigDF.iat[i,col4timestamp]-bigDF.iat[i-1,col4timestamp]
+            bigDF.iat[i,col4time_diff]=timeDelta
+            distDelta=haversine((bigDF.iat[i,col4lat],bigDF.iat[i,col4lon]), \
+                          (bigDF.iat[i-1,col4lat],bigDF.iat[i-1,col4lon]),\
+                           unit=Unit.NAUTICAL_MILES)
+            bigDF.iat[i,col4dist_diff]=distDelta
+            # For later functionality...
+            # if (timeDelta >= 60): 
+            #     #avoiding divide by zero (small nums)
+            #     aveSpeed=3600*distDelta/timeDelta
+            #     bigDF.iat[i,col4aveSpeed]=aveSpeed
+            #     #speed feature is knots, so need to convert time(secs) to hours
+            # #else:  # not needed since preset to nan
+            # #    bigDF.iat[i,col4aveSpeed]=np.nan
         else:
-            voyID=voyID+1
+            if(flag_used_voyID):  #there was an actual voyage using last voyID
+                voyID=voyID+1
+                flag_used_voyID=False
     else:               #not at sea              
         if flag_atSea:  #only increment voyID if was last at sea
             voyID=voyID+1
         flag_atSea=False
         
 
-#this code no longer needed...            
-# Eliminate meaningless intervals when the prev row was for a different ship
-# condition=bigDF.mmsi!=bigDF.mmsi.shift(1)
-# bigDF.loc[condition,'dist_diff']=np.nan
+print('After voyage ID assignments and stats, Dist statistics=:')
+print(bigDF.dist_diff.describe())
+
+#%%
 
 print('After ship changes, Num NaN:',bigDF.dist_diff.isnull().sum())
 print(bigDF.dist_diff.describe())
 
 #store statistics
 for s in shipTypes:
+    # For voyage lenght metrics
+    # condition=bigDF.type==s
+    # sDF=bigDF.loc[condition,'time_diff']
+    # norms.at[s,'time_diff_sd']=sDF.std()
+    # norms.at[s,'time_diff_q75']=sDF.quantile(q=0.75)
+    # norms.at[s,'time_diff_mean']=sDF.mean()
+    
+    #uncommented lines are a check on the difference
+    #if calcs are done vi (voyage independent) since
+    #that assignment is based on the assumption that within
+    #500 meters of shore ends a voyage.
+    
+    # For distance metrics
     condition=bigDF.type==s
     sDF=bigDF.loc[condition,'dist_diff']
-    norms.at[s,'dist_diff_sd']=sDF.std()
-    norms.at[s,'dist_diff_q75']=sDF.quantile(q=0.75)
-    norms.at[s,'dist_diff_mean']=sDF.mean()
-    
+    # norms.at[s,'dist_diff_sd']=sDF.std()
+    norms.at[s,'vi_dist_diff_q75']=sDF.quantile(q=0.75)
+    # norms.at[s,'dist_diff_mean']=sDF.mean()
 
+    # For time metrics
+    condition=bigDF.type==s
+    sDF=bigDF.loc[condition,'time_diff']
+    # norms.at[s,'time_diff_sd']=sDF.std()
+    norms.at[s,'vi_time_diff_q75']=sDF.quantile(q=0.75)
+    # norms.at[s,'time_diff_mean']=sDF.mean()
+    
+print("*bigDF dist_diff=",bigDF.dist_diff.describe())
 #%%
+
+#Commented out lines for other metrics are future functionality
 
 #Establish longest voyage for each ship
 shipStats=pd.DataFrame()
 voyageStats=pd.DataFrame()
 
-voyageStats['len_seconds']=bigDF.groupby('voyID').timestamp.max() \
-                   -bigDF.groupby('voyID').timestamp.min()
+#following also sets first column to voyID
 voyageStats['mmsi']=bigDF.groupby('voyID').mmsi.min()
 voyageStats['type']=bigDF.groupby('voyID').type.min()
-voyageStats['max_dist_gap']=bigDF.groupby('voyID').dist_diff.max()
-voyageStats['max_time_gap']=bigDF.groupby('voyID').ztime_diff.max()
-voyageStats['max_speed']=bigDF.groupby('voyID').speed.max()
-voyageStats['max_aveSpeed']=bigDF.groupby('voyID').aveSpeed.max()
+voyageStats['voy_len']=bigDF.groupby('voyID').timestamp.max() \
+                   -bigDF.groupby('voyID').timestamp.min()
+voyageStats['numObs']=bigDF.groupby('voyID').mmsi.count()
+voyageStats['ave_dist_gap']=bigDF.groupby('voyID').dist_diff.mean()
+voyageStats['ave_time_gap']=bigDF.groupby('voyID').time_diff.mean()
+#voyageStats['max_speed']=bigDF.groupby('voyID').speed.max()
+#voyageStats['max_aveSpeed']=bigDF.groupby('voyID').aveSpeed.max()
 
-#now populate norms based on voyages
+#populate ship behavior across all voyages
+shipStats['numVoy']=voyageStats.groupby('mmsi').type.count()
+shipStats['mmsi']=shipStats.index
+shipStats['numObsInVoys']=voyageStats.groupby('mmsi').numObs.sum()               
+shipStats['type']=voyageStats.groupby('mmsi').type.agg(pd.Series.mode)
+#! mode used in case re-typing of an mmsi.
+shipStats['ave_len_voy']=voyageStats.groupby('mmsi').voy_len.mean()
 
-norms['len_seconds_q75']=voyageStats.groupby('type').len_seconds.quantile(q=0.75)
 
-shipStats['type']=voyageStats.groupby('mmsi').type.min()                   
-shipStats['max_len_voy']=voyageStats.groupby('mmsi').len_seconds.max()
-shipStats['ave_len_voy']=voyageStats.groupby('mmsi').len_seconds.mean()
-shipStats['max_time_gap']=voyageStats.groupby('mmsi').max_time_gap.max()
-shipStats['max_dist_gap']=voyageStats.groupby('mmsi').max_dist_gap.max()
-shipStats['max_speed']=voyageStats.groupby('mmsi').max_speed.max()
-shipStats['max_aveSpeed']=voyageStats.groupby('mmsi').max_aveSpeed.max()
+#future!
+#shipStats['max_len_voy']=voyageStats.groupby('mmsi').voy_len.max()
+#shipStats['len_voy_q75']=voyageStats.groupby('type').voy_len.mean()
 
-##need help here to look in norms for the matching shipType
-##wanted to do something like shipStats['risk_len_voy]
-##   =shipStat['max_len_voy']>norms[shipStat.shipType,'len_seconds_q75']
-## instead did this crazy loop
+shipStats['ave_time_gap']=voyageStats.groupby('mmsi').ave_time_gap.mean()
+shipStats['ave_dist_gap']=voyageStats.groupby('mmsi').ave_dist_gap.mean()
+#shipStats['max_speed']=voyageStats.groupby('mmsi').max_speed.max()
+#shipStats['max_aveSpeed']=voyageStats.groupby('mmsi').max_aveSpeed.max()
 
-norms.shipType=norms.index
-shipStats['risk_len_voy']=np.nan
-col4type=shipStats.columns.get_loc('type')
-col4risk=shipStats.columns.get_loc('risk_len_voy')
-for s in shipTypes:
-    #condition=norms.shipType==s
-    limit=norms.at[s,'len_seconds_q75']
-    for s2 in range(0,len(shipStats)):
-        if shipStats.iat[s2,col4type]==s:    
-            shipStats['risk_len_voy']=shipStats.max_len_voy>limit
+#now populate norms based on shipStats & voyageStats
+# of voyages
+norms['numVoyages']=voyageStats.groupby('type').mmsi.count()
+#total length of voyages (seconds)
+norms['voy_len_q75']=voyageStats.groupby('type').voy_len.quantile(q=0.75)
+#time gaps between observations
+norms['time_gap_q75']=voyageStats.groupby('type').ave_time_gap.quantile(q=0.75)
+norms['dist_gap_q75']=voyageStats.groupby('type').ave_dist_gap.quantile(q=0.75)
+#norms['time_gap_mean']=voyageStats.groupby('type').max_time_gap.mean()
+#norms['time_gap_sd']=voyageStats.groupby('type').max_time_gap.std()
+#norms['shipType']=norms.index
+
+# #calculate risk columns (move to assess_risks)
+# shipStats['risk_len_voy']=np.nan
+# col4type=shipStats.columns.get_loc('type')
+# col4risk=shipStats.columns.get_loc('risk_len_voy')
+# # for s in shipTypes:
+# #     #condition=norms.shipType==s
+# #     limit=norms.at[s,'voy_len_q75']
+# #     for s2 in range(0,len(shipStats)):
+# #         if shipStats.iat[s2,col4type]==s:    
+# #             shipStats['risk_len_voy']=shipStats.voy_lenvoy(limit
+
 
 megaStats=shipStats.merge(norms, on='type',how='left')
-
 print(norms.describe(include='all'))
 print(shipStats.describe(include='all'))
 print(voyageStats.describe(include='all'))
 
 #%%
+# export enough of bigDF to debug
+first_mmsi=shipStats.iloc[0, 0]
+print('first_mmsi=',first_mmsi)
 
-
+condition=bigDF.mmsi==first_mmsi
+testDF=bigDF.loc[condition,:]
 
 #%%
 # Export Results
 path = "C:\\Users\\harry\\Github\\CAP\\Capstone\\AIS_results"
 
-norms.to_csv(os.path.join(path,'norms.csv'))
-shipStats.to_csv(os.path.join(path,'shipstats.csv'))
-voyageStats.to_csv(os.path.join(path,'voyageStats.csv'))
-megaStats.to_csv(os.path.join(path,'megaStats.csv'))
+norms.to_csv(os.path.join(path,'norms.csv'),na_rep='NULL')
+shipStats.to_csv(os.path.join(path,'shipstats.csv'),na_rep='NULL')
+voyageStats.to_csv(os.path.join(path,'voyageStats.csv'),na_rep='NULL')
+megaStats.to_csv(os.path.join(path,'megaStats.csv'),na_rep='NULL')
+testDF.to_csv(os.path.join(path,'testDF.csv'),na_rep='NULL')
