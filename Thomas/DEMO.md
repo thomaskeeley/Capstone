@@ -1,4 +1,4 @@
-# Demo
+## Demo
 The demo portion of this repository can be executed under conduct.py. The modules presented provide the capability of conducting object detection in satellite imagery using user produced training data.
 #
 ### create_training_data.py
@@ -16,3 +16,4 @@ into well known text(WKT) strings that can be imported as geographic data into G
 #
 ### conduct.py
 This is the main execution module
+
