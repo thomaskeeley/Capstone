@@ -122,57 +122,6 @@ class ObjectDetection:
             instance = GetSentinelImagery(
                 working_dir, aoi_path, username, password, date_range)
             self.import_image_path, self.date, self.time = instance.download_image()
-        
-    # def get_image_data(self):
-    #     """
-        
-    #     Returns
-    #     -------
-    #     im_bands : Integer
-    #         DESCRIPTION: Number of layers or bands in image
-    #     im_width : Integer
-    #         DESCRIPTION: Image width (pixels)
-    #     im_height : Integer
-    #         DESCRIPTION: Image height (pixels)
-    #     left : Float
-    #         DESCRIPTION: Western geographic bounding line
-    #     bottom : Float
-    #         DESCRIPTION: Southern geographic bounding line
-    #     right : Float
-    #         DESCRIPTION: Eastern geographic bounding line
-    #     top : Float
-    #         DESCRIPTION: Northern geographic bounding line
-    #     im_x_res : Float
-    #         DESCRIPTION: Image x resolution (pixel size in ground measurement)
-    #     im_y_res : Float
-    #         DESCRIPTION: Image y resolution (pixel size in ground measurement)
-    #     crs : String
-    #         DESCRIPTION: Image coordinate reference system
-    
-    #     """
-    #     if self.aoi_path:
-    #         out_transform = self.create_tensor()[2]
-            
-    #         im_x_res = abs(out_transform[0])
-    #         im_y_res = abs(out_transform[4])
-    #         left = out_transform[2]
-    #         top = out_transform[5]
-            
-    #     im = rasterio.open(self.import_image_path)
-        
-    #     im_bands = im.count
-        
-    #     im_width = im.width
-    #     im_height = im.height
-        
-    #     left, bottom, right, top = im.bounds
-        
-    #     im_x_res = (right-left)/im_width
-    #     im_y_res = (top-bottom)/im_height  
-        
-    #     crs = str(im.crs).split(':')[1] 
-        
-    #     return im_bands, im_width, im_height, left, bottom, right, top, im_x_res, im_y_res, crs
 
     
     def create_tensor(self):
@@ -546,8 +495,5 @@ class ObjectDetection:
         df = pd.DataFrame(wkt_strings, columns=['wkt'])
         df.to_csv(self.out_dir + 'obj_det_wkt-{}_{}.csv'.format(crs,date.today().strftime('%Y%m%d')))
         print('\n ~~~EXECUTION COMPLETE~~~')
- 
-        
-       
-       
+           
        
