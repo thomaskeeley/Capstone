@@ -6,7 +6,9 @@ The images found in positive_chips.zip are produced from a manaul process in QGI
 #
 ### train_model.py
 Next, the produced training data is split into train/testing datasets.A Keras sequential model is then defined, compiled, and fit to the training data. The produced model can then be optionally saved or integrated directly into the next portion where predictions are made.
-
+#
+### get_sentinel_imagery.py
+An option is presented to download imagery as part of the programming process from European Space Agency open source imagery API. Required parameters include a geographic file that will be used to regional queries, a data range for searching, as well as desired maximum cloud coverage.
 #
 ### object_detection.py
 The purpose of this module is to incorporate training data and trained model to conduct object detection in an image. A built in function conducts predictions across the image using a "moving window" where "windows" that have a prediction > user-defined predction_threshold are converted into coordinates and stored 
