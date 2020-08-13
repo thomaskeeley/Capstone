@@ -16,6 +16,6 @@ in a list. Next, the positive prediction coordinates are filtered to produce onl
 into well known text(WKT) strings that can be imported as geographic data into GIS software.
 
 #
-### conduct.py
+### main.py
 This is the main execution module
 
