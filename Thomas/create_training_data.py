@@ -65,7 +65,9 @@ class CreateTrainingChips:
 
         """
         os.chdir(self.pos_dir)
-        pos_filenames = [i for i in glob.iglob('*.tif')]
+        tif_filenames = [i for i in glob.iglob('*.tif')]
+        png_filenames = [i for i in glob.iglob('*.png')]
+        pos_filenames = tif_filenames + png_filenames
         pos_chips = []
         
         for file in pos_filenames:
@@ -184,7 +186,5 @@ class CreateTrainingChips:
         chips, labels = self.create_training_data(pos_chips, neg_chips)
         
         return chips, labels
-
-
 
 
