@@ -1,189 +1,130 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jul 11 15:03:29 2020
+Created on Sat Jul 11 18:14:35 2020
 
 @author: thomaskeeley
 """
 
 
-from PIL import Image
-import glob
-import os
+#%%
+
+
 import numpy as np
-from keras.utils import np_utils
+
+from keras.models import Sequential
+from keras.layers import Dense, Flatten, BatchNormalization, AveragePooling2D
+from keras.layers import Dropout
+from keras.layers.convolutional import Conv2D, MaxPooling2D
+from keras.optimizers import Adam
+
+from sklearn.model_selection import train_test_split
+
+from create_training_data import CreateTrainingChips
 
 #%%
 
 
-class CreateTrainingChips:
+class TrainModel:
     
-    def __init__(self, pos_chip_dir, neg_chip_dir, chip_width, chip_height, augment_pos_chips, augment_neg_chips):
-        """Create training tensors from image chips.
+    def __init__(self, pos_chip_dir, neg_chip_dir, chip_width, chip_height, augment_pos_chips, augment_neg_chips, save_model):
+        """
         
-        Note:
-            The purpose of this module is to ingest image chips manually created by user in GIS that are broken down
-            into two categories: 
-                1. chips that contain target object 
-                2. chips that are random background/negative labels.
-        
-        After the image is cropped to the desired dimension, it is transformed into tensors to be used as 
-        training data in a Deep Learning model.
-        The output is a collection of training tensors and associated label (0,1)
-                
         Parameters
         ----------
         pos_chip_dir : Directory
-            Filepath to positive image chips(contain target object for detection)
+            DESCRIPTION: Filepath to positive image chips(contain target object for detection)
         neg_chip_dir : Directory
-            Filepath to negative image chips(do not contain target object)
+            DESCRIPTION: Filepath to negative image chips(do not contain target object)
         chip_width : Integer
-            Desired output width of output training chip
+            DESCRIPTION: Desired output width of output training chip
         chip_height : Integer
-            Desired output height of output training chip
+            DESCRIPTION: Desired output height of output training chip
         augment_pos_chips : True or False
-            Option to create additional training data for positive chips through augmentation
+            DESCRIPTION: Option to create additional training data for positive chips through augmentation
         augment_neg_chips : True or False
-            Option to create additional training data for negative chips through augmentation
-
+            DESCRIPTION: Option to create additional training data for negative chips through augmentation
+        save_model : True or False
+            DESCRIPTION: Option to save model to output directory
+            
+        Notes
+        -------
+        The purpose of this module is to first split training tensors into a train/test split.
+        Next, a keras sequential model is defined, compiled, and fit to the training data.
+        This module may be customized to integrate pre-trained models or add additional layers.
+        The output is a trained model that can be saved to a local directory and imported later.
         """
-        
-        self.pos_dir = pos_chip_dir
-        self.neg_dir = neg_chip_dir
-        self.width = chip_width
-        self.height = chip_height
-        self.pos_augment = augment_pos_chips
-        self.neg_augment = augment_neg_chips
-        
-    def create_pos_chips(self):
+        self.training_data = CreateTrainingChips(pos_chip_dir, neg_chip_dir, chip_width, chip_height, 
+                                                 augment_pos_chips, augment_neg_chips)
+        self.chips, self.labels = self.training_data.execute()
+        self.save_model = save_model
+
+            
+    def train_test(self):
         """
         
         Returns
         -------
-        pos_chips : List
-            DESCRIPTION: Contains positive image chips
+        X_train
+        X_test
+        y_train
+        y_test
+            DESCRIPTION: Split of training data, shuffled by random indexes, and normalized
 
         """
-        os.chdir(self.pos_dir)
-        pos_filenames = [i for i in glob.iglob('*.tif')]
-        pos_chips = []
-        
-        for file in pos_filenames:
-            
-            im = Image.open(file)
-            
-            chip_width, chip_height = im.size
-            
-            width_min = round((chip_width - self.width) / 2)
-            width_max = width_min + self.width
-            
-            height_min = round((chip_height - self.height) / 2)
-            height_max = height_min + self.height
-            
-            im = im.crop((width_min, height_min, width_max, height_max))
-            
-            pos_chips.append(im)
-            
-            if self.pos_augment == True:
-                
-                pos_chips.append(im.transpose(Image.FLIP_LEFT_RIGHT))
-                pos_chips.append(im.transpose(Image.FLIP_TOP_BOTTOM))
-                pos_chips.append(im.rotate(90))
-                pos_chips.append(im.rotate(180))
-            
-        return pos_chips
-        
-        
+        X = self.chips
 
-    def create_neg_chips(self):
-        """
-        
-        Returns
-        -------
-        neg_chips : List
-            DESCRIPTION: Contains negative image chips
+        y = self.labels
 
-        """
-        os.chdir(self.neg_dir)
-        neg_filenames = [i for i in glob.iglob('*.tif')]
-        neg_chips = []
+        # shuffle all indexes
+        indexes = np.arange(len(X))
+        np.random.shuffle(indexes)
         
-        for file in neg_filenames:
-            
-            im = Image.open(file)
-            
-            chip_width, chip_height = im.size
-            
-            width_min = round((chip_width - self.width) / 2)
-            width_max = width_min + self.width
-            
-            height_min = round((chip_height - self.height) / 2)
-            height_max = height_min + self.height
-            
-            im = im.crop((width_min, height_min, width_max, height_max))
-            
-            neg_chips.append(im)
-            
-            if self.neg_augment == True:
-                
-                neg_chips.append(im.transpose(Image.FLIP_LEFT_RIGHT))
-                neg_chips.append(im.transpose(Image.FLIP_TOP_BOTTOM))
-                neg_chips.append(im.rotate(90))
-                neg_chips.append(im.rotate(180))
-            
-        return neg_chips
+        X = X[indexes].transpose([0,2,3,1])
+        y = y[indexes]
         
-    
-    
-    def create_training_data(self, pos_chips, neg_chips):
-        """
+        # normalization
+        X = X / 255
         
-        Returns
-        -------
-        chips : Array of uint8
-            Collection of training tensors
-        labels : Array of uint8
-            Categorical labels for training tensors (0,1)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
         
-        
-        >>> chips[0]
-        array([[[ 53,  54,  51, ...,  54,  54,  53],
-                [ 52,  53,  54, ...,  52,  55,  52],
-                [ 52,  53,  52, ...,  53,  51,  52],
-                ...,
-                [ 51,  49,  50, ...,  49,  49,  50],
-                [ 48,  48,  50, ...,  49,  47,  47],
-                [ 50,  51,  48, ...,  49,  49,  49]]], dtype=uint8)
-        """
-        chips = []
-        labels = []
-        for chip in pos_chips:
-            imarray = np.array(chip).astype('uint8')
-            imarray = np.moveaxis(imarray, -1, 0)
-            chips.append(imarray)
-            labels.append(1)
-            
-        for chip in neg_chips:
-            imarray = np.array(chip).astype('uint8')
-            imarray = np.moveaxis(imarray, -1, 0)
-            chips.append(imarray)
-            labels.append(0)
-            
-        chips = np.array(chips).astype('uint8')
-        labels = np_utils.to_categorical(labels, 2)  
-        
-        return chips, labels
-        
-            
+        return X_train, X_test, y_train, y_test
+
         
     def execute(self):
-        # print('CREATING TRAINING DATA...')
-        pos_chips = self.create_pos_chips()
-        neg_chips = self.create_neg_chips()
+        """
         
-        chips, labels = self.create_training_data(pos_chips, neg_chips)
+        Returns
+        -------
+        model : 
+            DESCRIPTION: Trained model based on user defined parameters, saved if defined in model_save parameter
+
+        """
+        print('\n >>> TRAINING MODEL')
+        X_train, X_test, y_train, y_test = self.train_test()
         
-        return chips, labels
+        model = Sequential([
+            Conv2D(32, (3,3),  activation="relu"),
+            BatchNormalization(),
+            MaxPooling2D((2,2)),
+            Conv2D(32, (3,3), activation="relu"),
+            BatchNormalization(),
+            AveragePooling2D((2,2)),
+            Flatten(),
+            Dense(400, activation="tanh"),
+            Dropout(0.25),
+            BatchNormalization(),
+            Dense(2, activation="softmax")
+        ])
 
-
-
+        model.compile(optimizer=Adam(lr=1e-3), loss="categorical_crossentropy", metrics=["accuracy"])
+        
+        model.fit(X_train, y_train, batch_size=32, epochs=50, validation_split=0.2, shuffle=True, verbose=1)
+        print('\n     Training Complete')
+        print('\n     Model Accuracy = {}'.format(model.evaluate(X_test, y_test, verbose=2)[1]))
+        
+        if self.save_model == True:
+            model.save('model.h5')
+     
+        return model
+        
