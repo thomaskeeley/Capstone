@@ -119,7 +119,7 @@ class TrainModel:
 
         model.compile(optimizer=Adam(lr=1e-3), loss="categorical_crossentropy", metrics=["accuracy"])
         
-        model.fit(X_train, y_train, batch_size=32, epochs=50, validation_split=0.2, shuffle=True, verbose=1)
+        model.fit(X_train, y_train, batch_size=32, epochs=20, validation_split=0.2, shuffle=True, verbose=1)
         print('\n     Training Complete')
         print('\n     Model Accuracy = {}'.format(model.evaluate(X_test, y_test, verbose=2)[1]))
         
