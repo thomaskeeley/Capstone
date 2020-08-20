@@ -10,12 +10,7 @@ import os
 from zipfile import ZipFile
 from sentinelsat import SentinelAPI
 import geopandas as gpd
-import fiona
-import rasterio
-from rasterio.mask import mask
-from PIL import Image
 
-import matplotlib.pyplot as plt
 
 #%%
 
