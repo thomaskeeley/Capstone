@@ -20,19 +20,20 @@ from object_detection import ObjectDetection
 if __name__ == '__main__':
     
     instance = ObjectDetection(
-    working_dir = '...',
-    import_image_path = '.../nk_aoi.tif',
+    working_dir = '.',
+    import_image_path = './aoi_image.tif',
     download_image = False,
     aoi_path = None,
     username = '',
     password = '',
-    date_range = (''),
-    mask_path = '.../nk_aoi_b.geojson',
-    out_dir = '...',
+    date_range = ('20190101', '20200101'),
+    mask_path = './aoi_mask.geojson',
+    # mask_path = None,
+    out_dir = '.',
     step = 4,
     prediction_threshold = 0.90,
-    pos_chip_dir = ('.../positive_chips/'),
-    neg_chip_dir = ('.../negative_chips/'),
+    pos_chip_dir = ('./positive_chips/'),
+    neg_chip_dir = ('./negative_chips/'),
     chip_width = 20,
     chip_height = 20,
     augment_pos_chips = True,
@@ -43,5 +44,3 @@ if __name__ == '__main__':
     
     instance.execute()
     
-
-#%%
