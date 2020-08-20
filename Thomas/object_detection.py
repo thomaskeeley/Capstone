@@ -217,18 +217,14 @@ class ObjectDetection:
         result_image = res.reshape((img.shape))
         
         plt.figure(1, figsize = (15, 30))
-
         plt.subplot(3, 1, 1)
-        plt.legend()
         plt.imshow(result_image)
-        
-        
-        plt.show()
+
         
         unique, counts = np.unique(result_image, return_counts=True)
 
         size = self.width
-        half = 10
+        half = size/2
         
         y_shape = result_image.shape[0]
         x_shape = result_image.shape[1]
@@ -300,8 +296,8 @@ class ObjectDetection:
             test_areas = self.k_means_segmentation(im_tensor)
             for idx, i in enumerate(test_areas):
                 sys.stdout.write('\r{}%  '.format(round(idx/len(test_areas), 3)))
-                x = i[0]
-                y = i[2]
+                x = int(i[2])
+                y = int(i[0])
                 window = self.moving_window(x, y, im_tensor)
                 if np.count_nonzero(window) == 0:
                     x += 20
@@ -320,7 +316,7 @@ class ObjectDetection:
                             coordinates.append([coords, result])
         else:                    
             for y in range(int((im_height-(20-step))/step)):
-                for x in range(int((im_width-(20-step))/step) ):
+                for x in range(int((im_width-(20-step))/step)):
                     window = self.moving_window(x*step, y*step, im_tensor)
                     if np.count_nonzero(window) == 0:
                         x += 20
