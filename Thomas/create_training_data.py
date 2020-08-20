@@ -186,5 +186,4 @@ class CreateTrainingChips:
         chips, labels = self.create_training_data(pos_chips, neg_chips)
         
         return chips, labels
-
-
+    
